@@ -8,9 +8,10 @@
 3：输入任何地区的全称/简称/code，输出该地区的全部信息
 4：获取所有行政区划关系数据等
 
+使用方法：
+import com.dengxq.lnglat2Geo.GeoTrans 里面的所有方法均为公有接口
 
-参考博客： https://blog.csdn.net/deng0515001/article/details/99606156
+接口文档，参考博客： https://blog.csdn.net/deng0515001/article/details/99606156
 
 有问题直接联系 QQ：451408963@qq.com
 
-接口文档，参考博客
