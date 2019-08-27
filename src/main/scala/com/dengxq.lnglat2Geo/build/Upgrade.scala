@@ -14,8 +14,13 @@ import AdminDataProvider._
 import collection.JavaConversions._
 
 object Upgrade {
+
+  private val MAX_INTERVER = 500
+
   /**
-    * 需要在pom resource 里把 json 数据排除配置取消后才可以执行 upgradeXXX
+    * 加载全部区县的边界数据，拆分过长线段，每段不超过500m
+    *
+    * @return
     */
   private def loadBoundary(): Array[AdminBoundary] = {
     DistrictLoader.loadAMapJson("country/" + 100000 + ".json")
@@ -46,12 +51,24 @@ object Upgrade {
       .flatMap(district => {
         if (district.get.polyline.nonEmpty) {
           val data = district.get.polyline.get.split('|').map(loopStr => {
-            loopStr.split(';').map(coordStr => {
-              val parts = coordStr.split(',')
-              val lng = parts(0).toDouble
-              val lat = parts(1).toDouble
-              S2CellId.fromLatLng(S2LatLng.fromDegrees(lat, lng)).id()
-            })
+            val ss = loopStr.split(';')
+              .map(coordStr => {
+                val parts = coordStr.split(',')
+                val lng = parts(0).toDouble
+                val lat = parts(1).toDouble
+                (lng, lat, S2LatLng.fromDegrees(lat, lng))
+              })
+              .sliding(2, 1)
+              .flatMap(slice => {
+                val dis = slice.head._3.getEarthDistance(slice.last._3).toInt
+                val n = dis / MAX_INTERVER + 1
+                (0 to n)
+                  .map(i => (slice.head._1 + (slice.last._1 - slice.head._1) * i / n, slice.head._2 + (slice.last._2 - slice.head._2) * i / n))
+                  .sliding(2, 1)
+              })
+              .toArray
+            (ss.map(_.head) ++ List(ss.last.last))
+              .map(s => S2CellId.fromLatLng(S2LatLng.fromDegrees(s._2, s._1)).id())
           })
           List(AdminBoundary(district.get.adcode.toInt, data))
         }
@@ -64,10 +81,10 @@ object Upgrade {
     // 国内区县边界S2块
     val boundaryIndex: Map[Long, List[Long]] =
       AdminDataProvider.AdminLoader.loadBoundaryData
-      .keySet
-      .map(s => (new S2CellId(s).parent(min_level).id(), s))
-      .groupBy(_._1)
-      .map(s => (s._1, s._2.map(_._2).toList))
+        .keySet
+        .map(s => (new S2CellId(s).parent(min_level).id(), s))
+        .groupBy(_._1)
+        .map(s => (s._1, s._2.map(_._2).toList))
 
     // 计算国内区县非边界线区域的S2块
     val chinaCellAdmin = DistrictLoader.loadAMapJson("country/" + 100000 + ".json")
@@ -95,9 +112,8 @@ object Upgrade {
         } else List.empty
       })
       .flatMap(admin => {
-        import collection.JavaConversions._
         if (admin.nonEmpty && admin.get.polyline.nonEmpty)
-          S2Utils.loadS2CellUnion(admin.get.polyline.get, min_level, min_level, 1000)
+          S2Utils.loadS2CellUnion(admin.get.polyline.get, min_level, min_level, 1000, true)
             .cellIds()
             .flatMap(s2CellId => {
               val cellLevel = getLevel(s2CellId.id)
@@ -119,12 +135,13 @@ object Upgrade {
     // 计算中国国界线包含的所有区域
     val chinaPoly = DistrictLoader.loadAMapJson("country/" + 100000 + ".json")
       .get.polyline.get
-    val chinaCell = S2Utils.loadS2CellUnion(chinaPoly, min_level, min_level, 10000)
+    val chinaCell = S2Utils.loadS2CellUnion(chinaPoly, min_level, min_level, 10000, false)
       .cellIds()
       .flatMap(s2CellId => {
         val cellLevel = getLevel(s2CellId.id)
         if (cellLevel == min_level) List(s2CellId.id())
-        else childrenCellId(s2CellId, cellLevel, min_level).map(_.id()).toList
+        else if (cellLevel < min_level) childrenCellId(s2CellId, cellLevel, min_level).map(_.id()).toList
+        else List.empty
       })
       .distinct
       .map(s => (s, 1))
@@ -141,7 +158,8 @@ object Upgrade {
       .flatMap(s2CellId => {
         val cellLevel = getLevel(s2CellId.id)
         if (cellLevel == min_level) List(s2CellId.id())
-        else childrenCellId(s2CellId, cellLevel, min_level).map(_.id()).toList
+        else if (cellLevel < min_level) childrenCellId(s2CellId, cellLevel, min_level).map(_.id()).toList
+        else List.empty
       })
       .distinct
       .map(s => (s, chinaCell.getOrElse(s, -1)))
@@ -174,7 +192,7 @@ object Upgrade {
       ).toArray
   }
 
-  private def loadChinaDistrict() : Array[AdminNode] = {
+  private def loadChinaDistrict(): Array[AdminNode] = {
     val streetMap = AdminDataProvider.AdminLoader.loadStreetData
       .map(s => (s.parentId, s.id))
       .groupBy(_._1)

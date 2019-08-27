@@ -2,8 +2,8 @@ package com.dengxq.lnglat2Geo.utils
 
 import com.google.common.geometry._
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-import collection.JavaConverters._
 
 object S2Utils {
 
@@ -36,11 +36,11 @@ object S2Utils {
     val list = ArrayBuffer.empty[S2CellId]
     if (curLevel < desLevel) {
       val interval = (s2CellId.childEnd.id - s2CellId.childBegin.id) / 4
-      for (i <- 0 to 4) {
+      (0 until 4).foreach(i => {
         val id = s2CellId.childBegin.id + interval * i
         val cellId = new S2CellId(id)
         list ++= childrenCellId(cellId, curLevel + 1, desLevel)
-      }
+      })
     } else list.append(s2CellId)
     list
   }
@@ -59,7 +59,7 @@ object S2Utils {
 
   private def earthMeters2Radians(meters: Double) :Double = (2 * S2.M_PI) * (meters / 40075017)
 
-  def loadS2CellUnion(polylineString: String, minLevel: Int = -1, maxLevel: Int = -1, maxCells: Int = -1): S2CellUnion = {
+  def loadS2CellUnion(polylineString: String, minLevel: Int = -1, maxLevel: Int = -1, maxCells: Int = -1, isInner: Boolean = false): S2CellUnion = {
     val s2PolygonBuilder = new S2PolygonBuilder()
 
     // polyline 中 | 分割多个polygon, 每个polygon的点用 ; 分割.
@@ -81,12 +81,11 @@ object S2Utils {
     if (minLevel > 0) coverer.setMinLevel(minLevel)
     if (maxLevel > 0) coverer.setMaxLevel(maxLevel)
     if (maxCells > 0) coverer.setMaxCells(maxCells)
-    val s2CellUnion = coverer.getCovering(polygon)
-    s2CellUnion.normalize()
+    val s2CellUnion = if (isInner) coverer.getInteriorCovering(polygon) else coverer.getCovering(polygon)
     s2CellUnion
   }
 
-  def loadS2CellUnionFromId(polyline: Array[Array[Long]], minLevel: Int = -1, maxLevel: Int = -1, maxCells: Int = -1): S2CellUnion = {
+  def loadS2CellUnionFromId(polyline: Array[Array[Long]], minLevel: Int = -1, maxLevel: Int = -1, maxCells: Int = -1, isInner: Boolean = false): S2CellUnion = {
     val s2PolygonBuilder = new S2PolygonBuilder()
     polyline.foreach(loopStr => {
       val points: Array[S2Point] = loopStr.map(id => new S2CellId(id).toPoint)
@@ -99,8 +98,9 @@ object S2Utils {
     if (minLevel > 0) coverer.setMinLevel(minLevel)
     if (maxLevel > 0) coverer.setMaxLevel(maxLevel)
     if (maxCells > 0) coverer.setMaxCells(maxCells)
-    val s2CellUnion = coverer.getCovering(polygon)
-    s2CellUnion.normalize()
+    coverer.setLevelMod(3)
+    val s2CellUnion = if (isInner) coverer.getInteriorCovering(polygon) else coverer.getCovering(polygon)
+//    s2CellUnion.normalize()
     s2CellUnion
   }
 }

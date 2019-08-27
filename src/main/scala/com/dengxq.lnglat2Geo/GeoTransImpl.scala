@@ -82,25 +82,46 @@ private[lnglat2Geo] object GeoTransImpl {
     adminData.getOrElse(adcode, null)
   }
 
-  def normalizeName(name: String, level: DistrictLevel): AdminNode = {
+  def normalizeName(name: String, level: DistrictLevel): Seq[AdminNode] = {
     adminData.values.filter(_.level.equals(level))
-      .find(_.shortName.contains(name))
-      .orNull
+      .filter(s => s.shortName.contains(name) || s.name.contains(name))
+      .toSeq
   }
 
-  def normalizeName(province: String = "", city: String = "", district: String = "", street: String = "", isFullMatch: Boolean = false): Seq[Admin] = {
+  def normalizeName(provinceIn: String = "", cityIn: String = "", districtIn: String = "", streetIn: String = "", isFullMatch: Boolean = false): Seq[Admin] = {
+    val province = if (provinceIn == null || provinceIn.equals("未知")) "" else provinceIn
+    val city = if (cityIn == null || cityIn.equals("未知")) "" else cityIn
+    val district = if (districtIn == null || districtIn.equals("未知")) "" else districtIn
+    val street = if (streetIn == null || streetIn.equals("未知")) "" else streetIn
+
     val provinceAd = adminData.values.filter(s => s.level.equals(DistrictLevel.Province)).filter(s => StringUtils.isEmpty(province) || s.name.equals(province) || (!isFullMatch && s.shortName.equals(province)))
     val adminNodes = if (StringUtils.isEmpty(city) && StringUtils.isEmpty(district) && StringUtils.isEmpty(street)) provinceAd
     else {
       val cityAd = provinceAd.flatMap(s => s.children.map(adCode => adminData.getOrElse(adCode, streetData.get(adCode).orNull)))
         .filter(s => !s.level.equals(DistrictLevel.City) || s.level.equals(DistrictLevel.City) && (StringUtils.isEmpty(city) || s.name.equals(city) || (!isFullMatch && s.shortName.equals(city))))
-      if (StringUtils.isEmpty(district) && StringUtils.isEmpty(street)) cityAd.filter(_.level.equals(DistrictLevel.City))
+      if (cityAd.isEmpty) provinceAd
       else {
-        val districtAd = cityAd.flatMap(s => if (s.level.equals(DistrictLevel.City)) s.children.map(adCode => adminData.getOrElse(adCode, streetData.get(adCode).orNull)) else List(s))
-          .filter(s => !s.level.equals(DistrictLevel.District) || s.level.equals(DistrictLevel.District) && (StringUtils.isEmpty(district) || s.name.equals(district) || (!isFullMatch && s.shortName.equals(district))))
-        if (StringUtils.isEmpty(street)) districtAd.filter(_.level.equals(DistrictLevel.District))
-        else districtAd.flatMap(s => if (s.level.equals(DistrictLevel.District)) s.children.map(adCode => streetData.get(adCode).orNull) else List(s))
-          .filter(s => s.name.equals(street) || (!isFullMatch && s.shortName.equals(street)))
+        if (StringUtils.isEmpty(district) && StringUtils.isEmpty(street)) cityAd.filter(s => s.level.equals(DistrictLevel.Province) || s.level.equals(DistrictLevel.City))
+        else {
+          var districtAd = cityAd.flatMap(s => {
+            if (s.level.equals(DistrictLevel.City) && StringUtils.isEmpty(street)) s.children.map(adCode => adminData.get(adCode).orNull)
+            else if (s.level.equals(DistrictLevel.City)) s.children.map(adCode => adminData.getOrElse(adCode, streetData.get(adCode).orNull))
+            else List(s)
+          })
+            .filter(s => s != null)
+            .filter(s => !s.level.equals(DistrictLevel.District) ||
+              s.level.equals(DistrictLevel.District) &&
+                (StringUtils.isEmpty(district) || s.name.equals(district) || (!isFullMatch && s.shortName.equals(district))))
+
+          if (districtAd.isEmpty) districtAd = cityAd
+          if (StringUtils.isEmpty(street)) districtAd.filter(s => s.level.equals(DistrictLevel.Province) || s.level.equals(DistrictLevel.City) || s.level.equals(DistrictLevel.District))
+          else {
+            var streetAd = districtAd.flatMap(s => if (s.level.equals(DistrictLevel.District)) s.children.map(adCode => streetData.get(adCode).orNull) else List(s))
+              .filter(s => s.name.equals(street) || (!isFullMatch && s.shortName.equals(street)))
+            if (streetAd.isEmpty) streetAd = districtAd
+            streetAd
+          }
+        }
       }
     }
 
@@ -140,17 +161,19 @@ private[lnglat2Geo] object GeoTransImpl {
       boundaryAdminCell.getOrElse(id2, -1)
     } else {
       var keys = List.empty[Long]
-      var maxLevel = 500
+      var maxLevel = 2000  //必须大于2000m，否则会出现格子半径过小选择错误问题
 
       // 最远距离 为新疆哈密市80公里
-      while (keys.isEmpty && maxLevel < 10000) {
-        keys = S2Utils.getCellId(s2LatLng, maxLevel, min_level).flatMap(key => boundaryIndex.getOrElse(key, List.empty))
+      while (keys.isEmpty && maxLevel < 200000) {
+        keys = S2Utils.getCellId(s2LatLng, maxLevel, min_level)
+          .flatMap(key => boundaryIndex.getOrElse(key, List.empty))
         maxLevel = maxLevel * 2
       }
       if (keys.nonEmpty) {
-        val lines1 = keys.map(key => (key, new S2CellId(key).toLatLng.getDistance(s2LatLng)))
+        val lines1 = keys
+          .map(key => (key, new S2CellId(key).toLatLng.getEarthDistance(s2LatLng)))
           .sortBy(_._2)
-          .take(1)
+          .take(5)
           .flatMap(startPoint => boundaryData.getOrElse(startPoint._1, List.empty).map(value => (startPoint._1, value._1, value._2, value._3)))
           .map(line => {
             val start = new S2CellId(line._1).toLatLng
@@ -162,6 +185,10 @@ private[lnglat2Geo] object GeoTransImpl {
         // 取出所有距离最短的线段
         val minDis = lines1.map(_._2).min
         val lines = lines1.filter(s => s._2 == minDis).map(_._1)
+          .groupBy(_._1)
+          .maxBy(_._2.size)
+          ._2
+
         if (lines.size == 1) { // 国内海外边界
           val line1 = lines.head
           val start = line1._1
@@ -184,19 +211,29 @@ private[lnglat2Geo] object GeoTransImpl {
           else if (line1._2 == line2._2 && line1._4 != line2._4) line2._3
           else -1
         } else { //多区域顶点 判断
-          val newLines = lines.groupBy(_._3).map(s => s._2.find(_._4).orNull)
-          val line1 = newLines.head
-          val line2 = newLines.last
+          lines.groupBy(_._3).map(s => {
+            val line1 = s._2.filter(_._4).head
+            val line2 = s._2.filter(!_._4).head
 
-          val start = line2._2
-          val end = line1._2
+            var start = line2._2
+            var end = line1._2
+            val point = line1._1
 
-          // 三点用行列式判断旋转方向
-          val angle = (start._1 - lon) * (end._2 - lat) - (end._1 - lon) * (start._2 - lat)
-          if ((angle < 0) == line1._4) line1._3
-          else line2._3
+            val dis1 = LineUtils.lineDis(start._1, start._2, point._1, point._2)
+            val dis2 = LineUtils.lineDis(end._1, end._2, point._1, point._2)
+            if (dis1 > dis2)
+              start = (point._1 + dis2 / dis1 * (start._1 - point._1), point._2 + dis2 / dis1 * (start._2 - point._2))
+            else
+              end = (point._1 + dis1 / dis2 * (end._1 - point._1), point._2 + dis1 / dis2 * (end._2 - point._2))
+            val angle = (start._1 - lon) * (end._2 - lat) - (end._1 - lon) * (start._2 - lat)
+            (s._1, angle)
+          })
+            .minBy(_._2)
+            ._1
         }
-      } else -1
+      } else {
+        -1
+      }
     }
   }
 

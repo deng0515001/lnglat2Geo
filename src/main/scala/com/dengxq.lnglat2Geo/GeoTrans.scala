@@ -86,7 +86,7 @@ object GeoTrans {
     * @param adcode 地区code
     * @return 规范化的地区信息
     */
-  def normalizeName(name: String, level: DistrictLevel): AdminNode = {
+  def normalizeName(name: String, level: DistrictLevel): Seq[AdminNode] = {
     GeoTransImpl.normalizeName(name, level)
   }
 

@@ -134,9 +134,9 @@ object LineUtils {
     var a = .0
     var b = .0
     var c = .0
-    a = lineSpace(x1, y1, x2, y2) // 线段的长度
-    b = lineSpace(x1, y1, x0, y0) // 点到起点的距离
-    c = lineSpace(x2, y2, x0, y0) // 点到终点的距离
+    a = lineDis(x1, y1, x2, y2) // 线段的长度
+    b = lineDis(x1, y1, x0, y0) // 点到起点的距离
+    c = lineDis(x2, y2, x0, y0) // 点到终点的距离
     //点在端点上
     if (c <= 0.000001 || b <= 0.000001) {
       return 0
@@ -163,7 +163,7 @@ object LineUtils {
   }
 
   // 计算两点之间的距离
-  private def lineSpace(x1: Double, y1: Double, x2: Double, y2: Double) =
+  def lineDis(x1: Double, y1: Double, x2: Double, y2: Double): Double =
     Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))
 
   case class Point(x: Double,

@@ -11,7 +11,7 @@ object AdminUtils {
   private final val p3 = """(.+)特别行政区""".r
 
   private final val c0 = """^(.{2})$""".r // 2 长度为2的 "东区" "南区"
-  private final val c1 = """(.+)自治州$""".r // 30 自治州
+  private final val c1 = """(.+)(?:自治州|自治县)$""".r // 30 自治州  琼中黎族苗族自治县
   private final val c2 = """(.+)[市|盟|州]$""".r // 304 地级市, 盟; + 1恩施州
   private final val c3 = """(.+)地区$""".r // 8 地区
   private final val c4 = """(.+)(?:群岛|填海区)$""".r // 2 东沙群岛
