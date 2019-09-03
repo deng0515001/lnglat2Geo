@@ -11,10 +11,13 @@
         <org.json4s.native.version>3.2.11</org.json4s.native.version>
         <slf4j.log4j12.version>1.6.2</slf4j.log4j12.version>
     </properties>
-    <groupId>com.dengxq</groupId>
+    <groupId>com.github.deng0515001</groupId>
     <artifactId>lnglat2Geo</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
+    <name>lnglat2Geo</name>
+    <description>lnglat to Geo</description>
+    <url>https://github.com/deng0515001/lnglat2Geo</url>
 
     <dependencies>
         <dependency>
@@ -64,6 +67,37 @@
         </dependency>
     </dependencies>
 
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/deng0515001/lnglat2Geo</url>
+        <connection>https://github.com/deng0515001/lnglat2Geo.git</connection>
+        <developerConnection>https://github.com/deng0515001/lnglat2Geo</developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <name>deng0515001</name>
+            <email>451408963@qq.com</email>
+            <url>https://github.com/deng0515001/lnglat2Geo</url>
+        </developer>
+    </developers>
+
+    <distributionManagement>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <snapshotRepository>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <plugins>
@@ -109,6 +143,22 @@
                 </configuration>
             </plugin>
 
+            <!-- 签名插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>signArtifact</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!--   要将源码放上去，需要加入这个插件    -->
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
@@ -119,6 +169,23 @@
                 <executions>
                     <execution>
                         <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <aggregate>true</aggregate>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
                         <goals>
                             <goal>jar</goal>
                         </goals>

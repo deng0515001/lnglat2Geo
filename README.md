@@ -18,11 +18,11 @@ import com.dengxq.lnglat2Geo.GeoTrans 里面的所有方法均为公有接口
 接口文档，参考博客： https://blog.csdn.net/deng0515001/article/details/99606156
 
 jar包maven依赖：
- <dependency>
+` <dependency>
    <groupId>com.github.deng0515001</groupId>
    <artifactId>lnglat2Geo</artifactId>
    <version>1.0.2</version>
- </dependency>
+ </dependency>`
 
 如果无法下载，可以修改仓库：https://oss.sonatype.org/service/local/repositories/releases/content 
 
