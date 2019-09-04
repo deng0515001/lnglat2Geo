@@ -24,7 +24,5 @@ jar包maven依赖：
    <version>1.0.3</version>
  </dependency>`
 
-如果无法下载，可以修改仓库：https://oss.sonatype.org/service/local/repositories/releases/content 
-
 有问题直接联系：QQ：451408963@qq.com
 
