@@ -13,7 +13,7 @@
     </properties>
     <groupId>com.github.deng0515001</groupId>
     <artifactId>lnglat2Geo</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     <name>lnglat2Geo</name>
     <description>lnglat to Geo</description>

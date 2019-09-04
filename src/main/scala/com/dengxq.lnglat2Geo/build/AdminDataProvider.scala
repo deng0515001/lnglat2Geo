@@ -1,16 +1,12 @@
 package com.dengxq.lnglat2Geo.build
 
-import java.util.Date
-
-import com.google.common.geometry._
+import com.dengxq.lnglat2Geo.entity.{AdminBoundary, AdminNode, CellAdmin}
+import com.dengxq.lnglat2Geo.utils.ObjectSerializer
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
 
-import scala.collection.JavaConverters._
 import scala.io.{Codec, Source}
 import scala.util.Try
-import com.dengxq.lnglat2Geo.entity.{AdminBoundary, AdminNode, CellAdmin}
-import com.dengxq.lnglat2Geo.utils.ObjectSerializer
 
 object AdminDataProvider {
 
