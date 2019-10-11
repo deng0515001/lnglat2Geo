@@ -54,20 +54,19 @@ object DistrictLevel extends EnumFunc {
 }
 
 @SerialVersionUID(568714356783645678L)
-object AdminLevel extends EnumFunc {
-  type AdminLevel = Value
+object AdminLevel {
   /**海外**/
-  val Oversea = Value("oversea")
+  val Oversea = "oversea"
   /**国家**/
-  val Country = Value("country")
+  val Country = "country"
   /**省,自治区**/
-  val Province = Value("province")
+  val Province = "province"
   /**地级市**/
-  val City = Value("city")
+  val City = "city"
   /**省辖市(属县级市) see:https://baike.baidu.com/item/省直辖县级行政单位**/
-  val ProvincialCity = Value("provincialcity")
+  val ProvincialCity = "provincialcity"
   /**区,县,县级市**/
-  val District = Value("district")
+  val District = "district"
   /**街道**/
-  val Street = Value("street")
+  val Street = "street"
 }

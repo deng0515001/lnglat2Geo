@@ -19,7 +19,7 @@ private[lnglat2Geo] object GeoTransImpl {
   lazy val streetData: Map[Int, AdminNode] = AdminDataProvider.AdminLoader.loadStreetData.map(s => (s.id, s)).toMap
   lazy val countryCode: Map[String, String] = AdminDataProvider.AdminLoader.loadCountryCode
 
-  lazy val boundaryData: Map[Long, List[(Long, Int, Boolean)]] = AdminDataProvider.AdminLoader.loadBoundaryData
+  lazy val boundaryData: Map[Long, List[(Long, Int, Int)]] = AdminDataProvider.AdminLoader.loadBoundaryData
   lazy val boundaryIndex: Map[Long, List[Long]] = boundaryData
     .keySet
     .map(s => (new S2CellId(s).parent(min_level).id(), s))
@@ -71,7 +71,7 @@ private[lnglat2Geo] object GeoTransImpl {
   }
 
   def getCityLevel(admin: Admin): String = {
-    getCityLevel(admin.cityID.toString)
+    getCityLevel(admin.cityCode.toString)
   }
 
   def getCityLevel(adcode_or_name: String): String = {
@@ -79,19 +79,34 @@ private[lnglat2Geo] object GeoTransImpl {
   }
 
   def normalizeName(adcode: Int): AdminNode = {
-    adminData.getOrElse(adcode, null)
+    adminData.getOrElse(adcode, streetData.getOrElse(adcode, null))
   }
 
-  def normalizeName(name: String, level: DistrictLevel): Seq[AdminNode] = {
+  def normalizeName(name: String, level: DistrictLevel, isFullMatch: Boolean): List[AdminNode] = {
     adminData.values.filter(_.level.equals(level))
-      .filter(s => s.shortName.contains(name) || s.name.contains(name))
-      .toSeq
+      .filter(s => if (isFullMatch) s.name.equals(name) else s.shortName.contains(name) || s.name.contains(name))
+      .toList
   }
 
-  def normalizeName(provinceIn: String = "", cityIn: String = "", districtIn: String = "", streetIn: String = "", isFullMatch: Boolean = false): Seq[Admin] = {
+  private val cityNameMap: Map[String, String] = Map(("重庆市", ""), ("上海市", "上海城区"), ("北京市", "北京城区"), ("天津市", "天津城区")
+    ,("那曲市", "那曲地区")
+  )
+
+  private val districtNameMap: Map[String, String] = Map(("云州区", "大同县"), ("平城区", "城区"), ("云冈区", "南郊区"),
+    ("余江区", "余江县"), ("马龙区", "马龙县"), ("光明区", "宝安区"), ("怀仁区", "怀仁县"), ("彬州市", "彬县"), ("海安市", "海安县"),
+    ("漠河市", "漠河县"), ("京山市", "京山县"), ("济阳区", "济阳县"), ("潞州区", "城区"), ("上党区", "长治县"), ("屯留区", "屯留县"), ("潞城区", "潞城市"),
+    ("滦州市", "滦县"), ("潜山市", "潜山县"), ("邹平市", "邹平县"), ("荔浦市", "荔浦县"), ("兴仁市", "兴仁县"), ("水富市", "水富县"), ("华亭市", "华亭县"),
+    ("积石山县", "积石山保安族东乡族撒拉族自治县"), ("元江县", "元江哈尼族彝族傣族自治县"), ("双江县", "双江拉祜族佤族布朗族傣族自治县"),
+    ("孟连县", "孟连傣族拉祜族佤族自治县"), ("镇沅县", "镇沅彝族哈尼族拉祜族自治县"),
+    ("大柴旦行政委员会", "海西蒙古族藏族自治州直辖"), ("冷湖行政委员会", "海西蒙古族藏族自治州直辖"), ("茫崖行政委员会", "海西蒙古族藏族自治州直辖"),
+    ("上饶县", "广信区"), ("达孜区", "达孜县"),
+    ("色尼区", "那曲县")
+  )
+
+  def normalizeName(provinceIn: String = "", cityIn: String = "", districtIn: String = "", streetIn: String = "", isFullMatch: Boolean = false): List[Admin] = {
     val province = if (provinceIn == null || provinceIn.equals("未知")) "" else provinceIn
-    val city = if (cityIn == null || cityIn.equals("未知")) "" else cityIn
-    val district = if (districtIn == null || districtIn.equals("未知")) "" else districtIn
+    val city = if (cityIn == null || cityIn.equals("未知")) "" else cityNameMap.getOrElse(cityIn, cityIn)
+    val district = if (districtIn == null || districtIn.equals("未知")) "" else districtNameMap.getOrElse(districtIn, districtIn)
     val street = if (streetIn == null || streetIn.equals("未知")) "" else streetIn
 
     val provinceAd = adminData.values.filter(s => s.level.equals(DistrictLevel.Province)).filter(s => StringUtils.isEmpty(province) || s.name.equals(province) || (!isFullMatch && s.shortName.equals(province)))
@@ -142,7 +157,7 @@ private[lnglat2Geo] object GeoTransImpl {
           Admin.createStreet(province.name, city.name, district.name, admin.name, province.id, city.id, district.id, admin.id, admin.center)
         case _ => Admin.createOversea
       }
-    }).toSeq
+    }).toList
   }
 
   private def determineAdminCode(lonIn: Double, latIn: Double, coordSys: CoordinateSystem = CoordinateSystem.GCJ02): Int = {
@@ -161,7 +176,7 @@ private[lnglat2Geo] object GeoTransImpl {
       boundaryAdminCell.getOrElse(id2, -1)
     } else {
       var keys = List.empty[Long]
-      var maxLevel = 2000  //必须大于2000m，否则会出现格子半径过小选择错误问题
+      var maxLevel = 2000 //必须大于2000m，否则会出现格子半径过小选择错误问题
 
       // 最远距离 为新疆哈密市80公里
       while (keys.isEmpty && maxLevel < 200000) {
@@ -174,7 +189,7 @@ private[lnglat2Geo] object GeoTransImpl {
           .map(key => (key, new S2CellId(key).toLatLng.getEarthDistance(s2LatLng)))
           .sortBy(_._2)
           .take(5)
-          .flatMap(startPoint => boundaryData.getOrElse(startPoint._1, List.empty).map(value => (startPoint._1, value._1, value._2, value._3)))
+          .flatMap(startPoint => boundaryData.getOrElse(startPoint._1, List.empty).flatMap(value => List((startPoint._1, value._1, value._2, true), (startPoint._1, value._1, value._3, false))))
           .map(line => {
             val start = new S2CellId(line._1).toLatLng
             val end = new S2CellId(line._2).toLatLng
@@ -238,7 +253,7 @@ private[lnglat2Geo] object GeoTransImpl {
   }
 
   def determineAreaByAdmin(lon: Double, lat: Double, admin: Admin, radius: Int): BusinessAreaInfo = {
-    val businessAreas = determineAreaByCityId(lon, lat, admin.cityID, radius, CoordinateSystem.GCJ02)
+    val businessAreas = determineAreaByCityId(lon, lat, admin.cityCode, radius, CoordinateSystem.GCJ02)
     BusinessAreaInfo(admin, businessAreas)
   }
 

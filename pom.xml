@@ -13,7 +13,7 @@
     </properties>
     <groupId>com.github.deng0515001</groupId>
     <artifactId>lnglat2Geo</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>jar</packaging>
     <name>lnglat2Geo</name>
     <description>lnglat to Geo</description>
@@ -180,9 +180,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.1.1</version>
-                <configuration>
-                    <aggregate>true</aggregate>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<aggregate>true</aggregate>-->
+                <!--</configuration>-->
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

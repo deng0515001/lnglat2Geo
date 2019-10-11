@@ -12,7 +12,7 @@ object Func {
   class _sm(streetMap: StreetMap) {
     def findNearStreet(districtAdmin: Admin, lonlat: (Double, Double)) :Option[StreetNode] = {
       val loc = Location(lonlat._1, lonlat._2)
-      val districtId = if(districtAdmin.districtID != -1) districtAdmin.districtID else districtAdmin.cityID
+      val districtId = if(districtAdmin.districtCode != -1) districtAdmin.districtCode else districtAdmin.cityCode
       if(streetMap.data.contains(districtId)) {
         val streetDistanceLs = streetMap.data(districtId)
           .flatMap { sn =>

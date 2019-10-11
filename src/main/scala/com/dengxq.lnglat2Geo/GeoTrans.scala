@@ -5,6 +5,7 @@ import com.dengxq.lnglat2Geo.entity.CoordinateSystem.CoordinateSystem
 import com.dengxq.lnglat2Geo.entity.DistrictLevel.DistrictLevel
 import com.dengxq.lnglat2Geo.entity.{Admin, BusinessArea, BusinessAreaInfo, CoordinateSystem, _}
 import com.dengxq.lnglat2Geo.utils.GeoUtils
+import collection.JavaConversions._
 
 object GeoTrans {
 
@@ -86,8 +87,8 @@ object GeoTrans {
     * @param adcode 地区code
     * @return 规范化的地区信息
     */
-  def normalizeName(name: String, level: DistrictLevel): Seq[AdminNode] = {
-    GeoTransImpl.normalizeName(name, level)
+  def normalizeName(name: String, level: DistrictLevel, isFullMatch: Boolean): java.util.List[AdminNode] = {
+    GeoTransImpl.normalizeName(name, level, isFullMatch)
   }
 
   /**

@@ -2,6 +2,8 @@ package com.dengxq.lnglat2Geo.build
 
 import com.dengxq.lnglat2Geo.entity.{AdminBoundary, AdminNode, CellAdmin}
 import com.dengxq.lnglat2Geo.utils.ObjectSerializer
+import com.google.common.geometry._
+import scala.collection.JavaConverters._
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
 
@@ -11,6 +13,8 @@ import scala.util.Try
 object AdminDataProvider {
 
   final val CHINA_DISTRICT_BOUNDARY = "src/main/resources/china/boundary.data"
+  final val CHINA_DISTRICT_BOUNDARY2 = "data/china/boundary.data"
+  final val CHINA_DISTRICT_BOUNDARY3 = "data/china/boundary3.data"
   final val RESOURCE_CHINA_DISTRICT_BOUNDARY = "/china/boundary.data"
 
   final val CHINA_DISTRICT_BOUNDARY_CELL = "src/main/resources/china/boundaryCell.data"
@@ -43,6 +47,45 @@ object AdminDataProvider {
         Option(data)
       }.getOrElse(None)
     }
+
+    private def loadS2CellUnion(polylineString: String, minLevel: Int = -1, maxLevel: Int = -1, maxCells: Int = -1)
+    : S2CellUnion = {
+      val s2PolygonBuilder = new S2PolygonBuilder()
+
+      // polyline 中 | 分割多个polygon, 每个polygon的点用 ; 分割.
+      // 每个 polygon 构建 一个 S2Loop, 合并到 S2PolygonBuilder中生成 multi polygon
+      polylineString.split('|').foreach(loopStr => {
+        val points: Array[S2Point] = loopStr.split(';').map(coordStr => {
+          val parts = coordStr.split(',')
+          //      (parts(0).toDouble, parts(1).toDouble)
+          val lng = parts(0).toDouble
+          val lat = parts(1).toDouble
+          S2LatLng.fromDegrees(lat, lng).toPoint
+        })
+        val jPoints = points.toList.asJava
+
+        s2PolygonBuilder.addLoop(new S2Loop(jPoints))
+      })
+
+      val polygon = s2PolygonBuilder.assemblePolygon()
+
+      // 栅格化处理区域多边形
+      val coverer = new S2RegionCoverer()
+      if (minLevel > 0) {
+        coverer.setMinLevel(minLevel)
+      }
+      if (maxLevel > 0) {
+        coverer.setMaxLevel(maxLevel)
+      }
+      if (maxCells > 0) {
+        coverer.setMaxCells(maxCells)
+      }
+
+      //val s2CellUnion = coverer.getInteriorCovering(polygon)
+      val s2CellUnion = coverer.getCovering(polygon)
+      s2CellUnion.normalize()
+      s2CellUnion
+    }
   }
 
   object AdminLoader {
@@ -59,7 +102,7 @@ object AdminDataProvider {
       *
       * @return
       */
-    def loadBoundaryData: Map[Long, List[(Long, Int, Boolean)]] = {
+    def loadBoundaryData: Map[Long, List[(Long, Int, Int)]] = {
       val stream = this.getClass.getResourceAsStream(RESOURCE_CHINA_DISTRICT_BOUNDARY)
       ObjectSerializer
         .deserialize[Array[AdminBoundary]](stream)
@@ -69,7 +112,21 @@ object AdminDataProvider {
         ))
         .toList
         .groupBy(_._1)
-        .map(s => (s._1, s._2.map(ss => (ss._2, ss._3, ss._4))))
+        .map(s => (s._1, s._2.map(ss => (ss._2, ss._3, ss._4)).groupBy(_._1)
+          .map(sss => {
+            val list = sss._2.map(ssss => (ssss._2, ssss._3)).sortBy(_._2)(Ordering.Boolean.reverse)
+            if (list.size > 2) throw new Exception
+            else if (list.size == 2) {
+              if (!list.head._2 || list.last._2) throw new Exception
+              val first = list.head._1
+              val second = list.last._1
+              (sss._1, first, second)
+            } else {
+              if (list.head._2) (sss._1, list.head._1, -1)
+              else (sss._1, -1, list.head._1)
+            }
+          }).toList
+        ))
     }
 
     def loadBoundaryCellData: Map[Long, Int] = {
