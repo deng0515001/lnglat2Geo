@@ -67,9 +67,8 @@ object S2Utils {
     polylineString.split('|').foreach(loopStr => {
       val points: Array[S2Point] = loopStr.split(';').map(coordStr => {
         val parts = coordStr.split(',')
-        val lng = parts(0).toDouble
-        val lat = parts(1).toDouble
-        S2LatLng.fromDegrees(lat, lng).toPoint
+        val wgs84 = GeoUtils.gcj02ToWgs84(parts(0).toDouble, parts(1).toDouble)
+        S2LatLng.fromDegrees(wgs84._2, wgs84._1).toPoint
       })
       val jPoints = points.toList.asJava
 

@@ -48,8 +48,8 @@ private[lnglat2Geo] object GeoTransImpl {
   }
 
   def determineAdmin(lon: Double, lat: Double, needStreet: Boolean = false, coordSys: CoordinateSystem = CoordinateSystem.GCJ02): Admin = {
-    val gcj02LonLat = GeoUtils.toGCJ02(lon, lat, coordSys)
-    val code = determineAdminCode(gcj02LonLat._1, gcj02LonLat._2)
+    val wgs84LonLat = GeoUtils.toWGS84(lon, lat, coordSys)
+    val code = determineAdminCode(wgs84LonLat._1, wgs84LonLat._2)
     if (code != -1) {
       val district = adminData.get(code).orNull
       val city = if (district.level == DistrictLevel.District) adminData.get(district.parentId).orNull else district
@@ -60,7 +60,7 @@ private[lnglat2Geo] object GeoTransImpl {
       if (needStreet) {
         if (district.children.nonEmpty) {
           val street = district.children.map(s => streetData.get(s))
-            .minBy(s => GeoUtils.distance(s.get.center, Location(gcj02LonLat._1, gcj02LonLat._2))).get
+            .minBy(s => GeoUtils.distance(s.get.center, Location(wgs84LonLat._1, wgs84LonLat._2))).get
           streetCode = street.id
           streetName = street.name
         }

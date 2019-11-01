@@ -151,6 +151,19 @@ object GeoUtils {
     }
   }
 
+  def toWGS84(lng: Double, lat:Double, coordType: CoordinateSystem.CoordinateSystem): (Double, Double) = {
+    coordType match {
+      case CoordinateSystem.GCJ02 =>
+        val d = GeoUtils.gcj02ToWgs84(lng, lat)
+        (d._1, d._2)
+      case CoordinateSystem.BD09 =>
+        val d02 = GeoUtils.bd09ToGCJ02(lng, lat)
+        val d = GeoUtils.gcj02ToWgs84(d02._1, d02._2)
+        (d._1, d._2)
+      case _ => (lng, lat)
+    }
+  }
+
   @deprecated
   def nearest[A](source: Array[A], loc: Location, locExpression: A => Location) :Option[A] = {
     if(source == null || source.isEmpty) {

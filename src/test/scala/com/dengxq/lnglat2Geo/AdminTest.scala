@@ -20,7 +20,7 @@ class AdminTest extends FlatSpec {
     (116.4811706543,39.9255352817), // 北京市朝阳区 六里屯街道甜水园
     (116.3362348080,40.0622912084), // 北京市昌平区 回龙观地区吉晟别墅社区
     (116.3362830877,40.0594500522), // 北京市北京市昌平区 建材城西路65号
-    (116.3325601816,40.0397393499), // 北京市海淀区 清河街道 小米六期
+    (116.3325601816,40.0397393499), // 北京市海淀区 清河街道
     (117.0977783203,36.5085323575), // 山东省济南市历城区
     (118.6358642578,35.8356283889), // 山东省临沂市沂水县
     (119.7853088379,36.3029520437), // 山东省潍坊市高密市柏城镇
@@ -50,8 +50,8 @@ class AdminTest extends FlatSpec {
     Admin.createDistrict( "山东省", "潍坊市", "高密市", 370700, 370700, 370785, Location(119.755597,36.382594)),
     Admin.createDistrict("山东省", "青岛市", "胶州市", 370200, 370200, 370281, Location(120.033382,36.26468)),
     Admin.createDistrict( "山东省", "青岛市", "城阳区", 370200, 370200, 370214, Location(120.396256,36.307559)),
-    Admin.createDistrict("海外", "海外", "海外", 370200, 370200, -1, Location(120.396256,36.307559)),
-    Admin.createDistrict("海外", "海外", "海外", 370200, 370200, -1, Location(120.396256,36.307559))
+    Admin.createDistrict("海外", "海外", "海外", -1, -1, -1, Location(120.396256,36.307559)),
+    Admin.createDistrict("海外", "海外", "海外", -1, -1, -1, Location(120.396256,36.307559))
   )
 
   "AdminArea.determineAdmin in scala " should "qps > 14w" in {
@@ -129,9 +129,9 @@ class AdminTest extends FlatSpec {
 
         assert(admin.province == adminR.province)
         assert(admin.city == adminR.city)
-        assert(admin.cityID == adminR.cityID)
+        assert(admin.cityCode == adminR.cityCode)
         assert(admin.district == adminR.district)
-        assert(admin.districtID == adminR.districtID)
+        assert(admin.districtCode == adminR.districtCode)
       })
 
 //    List().map(s => {

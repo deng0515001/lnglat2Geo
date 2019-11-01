@@ -21,7 +21,7 @@ jar包maven依赖：
 ` <dependency>
    <groupId>com.github.deng0515001</groupId>
    <artifactId>lnglat2Geo</artifactId>
-   <version>1.0.4</version>
+   <version>1.0.5</version>
  </dependency>`
 
 有问题直接联系：QQ：451408963@qq.com

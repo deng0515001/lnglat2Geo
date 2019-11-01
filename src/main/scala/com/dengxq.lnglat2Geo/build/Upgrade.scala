@@ -6,7 +6,7 @@ import java.text.Collator
 import com.dengxq.lnglat2Geo.build.AdminDataProvider.{AMapData, DistrictLoader}
 import com.google.common.geometry._
 import com.dengxq.lnglat2Geo.entity._
-import com.dengxq.lnglat2Geo.utils.{AdminUtils, ObjectSerializer, S2Utils}
+import com.dengxq.lnglat2Geo.utils.{AdminUtils, GeoUtils, ObjectSerializer, S2Utils}
 import com.dengxq.lnglat2Geo.utils.S2Utils.{childrenCellId, getLevel}
 import com.dengxq.lnglat2Geo.GeoTransImpl.min_level
 import AdminDataProvider._
@@ -55,9 +55,8 @@ object Upgrade {
             val ss = loopStr.split(';')
               .map(coordStr => {
                 val parts = coordStr.split(',')
-                val lng = parts(0).toDouble
-                val lat = parts(1).toDouble
-                (lng, lat, S2LatLng.fromDegrees(lat, lng))
+                val wgs84 = GeoUtils.gcj02ToWgs84(parts(0).toDouble, parts(1).toDouble)
+                (wgs84._1, wgs84._2, S2LatLng.fromDegrees(wgs84._2, wgs84._1))
               })
               .sliding(2, 1)
               .flatMap(slice => {
