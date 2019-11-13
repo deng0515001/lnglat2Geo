@@ -17,7 +17,7 @@ import com.dengxq.lnglat2Geo.GeoTrans 里面的所有方法均为公有接口
 
 接口文档，参考博客： https://blog.csdn.net/deng0515001/article/details/99606156
 
-jar包maven依赖：https://mvnrepository.com/artifact/com.github.deng0515001/lnglat2Geo
+jar包依赖：https://mvnrepository.com/artifact/com.github.deng0515001/lnglat2Geo
 
 有问题直接联系：QQ：451408963@qq.com
 
